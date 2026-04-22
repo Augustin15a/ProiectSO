@@ -6,6 +6,7 @@
 #include "cityManager.h"
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <string.h>
 
 void add(char *district,char *role,char *user)
 {
@@ -32,12 +33,13 @@ void add(char *district,char *role,char *user)
     snprintf(path, sizeof(path), "%s/reports.dat", district);
 
     int fd = 0;
-    if((fd = open(path, O_WRONLY | O_CREAT | O_APPEND, PERM_REPORTS_DAT)) < 0)
+    if((fd = open(path, O_WRONLY | O_CREAT | O_APPEND, PERM_REPORTS_DAT)) < 0)//append scriere
     {
         perror("EROARE OPEN!\n");
         exit(-1);
     }
     Report rep;
+    memset(&rep, 0, sizeof(Report));
     printf("X: "); scanf("%f",&rep.coord.x);
     printf("Y: "); scanf("%f",&rep.coord.y);getchar();
     printf("Category (road/lighting/flooding/other): "); scanf("%s",rep.issueCateg);
@@ -59,6 +61,34 @@ void add(char *district,char *role,char *user)
     }
     close(fd);
 }
+void list(char *district)
+{
+    char path[128];
+    snprintf(path, sizeof(path), "%s/reports.dat", district);
+
+    int fd = 0;
+    if((fd = open(path, O_RDONLY)) < 0)
+    {
+        perror("EROARE OPEN!\n");
+        exit(-1);
+    }
+    Report rep;
+    int foldergol = 0;
+    while(read(fd,&rep,sizeof(Report)) == sizeof(Report))
+    {
+        foldergol++;
+        printf("Report numar %d:\n",foldergol);
+        printf("User: %s\n", rep.name);
+        printf("Coordonate: (%.2f, %.2f)\n", rep.coord.x, rep.coord.y);
+        printf("Categorie: %s\n", rep.issueCateg);
+        printf("Severitate: %d\n", rep.severityLevel);
+        printf("Descriere: %s\n", rep.descriptionText);
+        printf("Timestamp: %s\n", ctime(&rep.timestamp));
+    }
+    if(foldergol == 0)
+        printf("IN FOLDER NU EXISTA UN REPORT INCARCAT\n");
+    close(fd);
+}
 int main(int argc,char **argv)
 {
     char role[10];
@@ -71,20 +101,28 @@ int main(int argc,char **argv)
     for(int i = 1; i < argc;i++)
     {
         if(strcmp(argv[i],"--role") == 0)
+        {
             strcpy(role,argv[i+1]);
+            i++;
+        }
         if(strcmp(argv[i],"--user") == 0)
+        {
             strcpy(user,argv[i+1]);
+            i++;
+        }
         if(strcmp(argv[i],"--add") == 0)
         {
             strcpy(command,"add");
             if(i+1 < argc)
                 strcpy(district,argv[i+1]);
+            i++;
         }
         if(strcmp(argv[i],"--list") == 0)
         {
             strcpy(command,"list");
             if(i+1 < argc)
                 strcpy(district,argv[i+1]);
+            i++;
         }
         if(strcmp(argv[i],"--view") == 0)
         {
@@ -93,6 +131,7 @@ int main(int argc,char **argv)
             {
                 strcpy(district,argv[i+1]);
                 reportID = atoi(argv[i+2]);
+                i += 2;
             }
         }
         if(strcmp(argv[i],"--remove_report") == 0)
@@ -102,6 +141,7 @@ int main(int argc,char **argv)
             {
                 strcpy(district,argv[i+1]);
                 reportID = atoi(argv[i+2]);
+                i += 2;
             }
         }
         if(strcmp(argv[i],"--update_threshold") == 0)
@@ -111,6 +151,7 @@ int main(int argc,char **argv)
             {
                 strcpy(district,argv[i+1]);
                 value = atoi(argv[i+2]);
+                i += 2;
             }
         }
         if(strcmp(argv[i],"--filter") == 0)
@@ -120,7 +161,12 @@ int main(int argc,char **argv)
             {
                 strcpy(district,argv[i+1]);
                 strcpy(condition,argv[i+2]);
+                i += 2;
             }
         }
     }
+    if(strcmp(command,"add") == 0)
+        add(district,role,user);
+    if(strcmp(command,"list") == 0)
+        list(district);
 }

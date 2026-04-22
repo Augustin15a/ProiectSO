@@ -13,15 +13,14 @@ typedef struct
     float y;
 }Coords;
 
-typedef struct 
-{
+typedef struct {
     int reportID;
     int severityLevel;
+    time_t timestamp;
+    Coords coord;
     char name[32];
     char issueCateg[32];
-    char descriptionText[128];
-    Coords coord;
-    time_t timestamp;
-}Report;
+    char descriptionText[256];
+} Report;
 
 #endif
