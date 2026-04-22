@@ -3,28 +3,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
-
-typedef enum level
-{
-    minor,
-    moderate,
-    critical,
-}level;
-typedef struct
-{
-    float x;
-    float y;
-}Coords;
-typedef struct 
-{
-    int reportID;
-    level severityLevel;
-    char inspectorName[30];
-    char issueCateg[30];
-    char descriptionText[100];
-    Coords coord;
-    time_t timestamp;
-}Report;
+#include "cityManager.h"
 
 void add()
 {
