@@ -8,6 +8,16 @@
 #include <sys/types.h>
 #include <string.h>
 
+void printRep(Report rep,int foldergol)
+{
+    printf("Report numar %d:\n",foldergol);
+    printf("User: %s\n", rep.name);
+    printf("Coordonate: (%.2f, %.2f)\n", rep.coord.x, rep.coord.y);
+    printf("Categorie: %s\n", rep.issueCateg);
+    printf("Severitate: %d\n", rep.severityLevel);
+    printf("Descriere: %s\n", rep.descriptionText);
+    printf("Timestamp: %s\n", ctime(&rep.timestamp));
+}
 void add(char *district,char *role,char *user)
 {
     struct stat statdir;
@@ -77,16 +87,96 @@ void list(char *district)
     while(read(fd,&rep,sizeof(Report)) == sizeof(Report))
     {
         foldergol++;
-        printf("Report numar %d:\n",foldergol);
-        printf("User: %s\n", rep.name);
-        printf("Coordonate: (%.2f, %.2f)\n", rep.coord.x, rep.coord.y);
-        printf("Categorie: %s\n", rep.issueCateg);
-        printf("Severitate: %d\n", rep.severityLevel);
-        printf("Descriere: %s\n", rep.descriptionText);
-        printf("Timestamp: %s\n", ctime(&rep.timestamp));
+        printRep(rep,foldergol);
     }
     if(foldergol == 0)
         printf("IN FOLDER NU EXISTA UN REPORT INCARCAT\n");
+    close(fd);
+}
+void view(char *district, int reportID)
+{
+    char path[128];
+    snprintf(path, sizeof(path), "%s/reports.dat", district);
+
+    int fd = 0;
+    if((fd = open(path, O_RDONLY)) < 0)
+    {
+        perror("EROARE OPEN!\n");
+        exit(-1);
+    }
+    Report rep;
+    struct stat st;
+    if(stat(path, &st) < 0)
+    {
+        perror("EROARE STAT!\n");
+        close(fd);
+        exit(-1);
+    }
+    if(st.st_size / sizeof(Report) < reportID)
+    {
+        close(fd);
+        perror("NU EXISTA IDUL REPORTULUI!\n");
+        exit(-1);
+    }
+    if(lseek(fd, (reportID - 1) * sizeof(Report), SEEK_SET) < 0)
+    {
+        perror("EROARE LSEEK!\n");
+        close(fd);
+        exit(-1);
+    }
+    if(read(fd, &rep, sizeof(Report)) != sizeof(Report))
+    {
+        perror("EROARE READ!\n");
+        close(fd);
+        exit(-1);
+    }
+    printRep(rep,reportID);
+    close(fd);
+}
+void remove_report(char *district,char *role,int reportID)
+{
+    if(strcmp(role, "manager") != 0)
+    {
+        perror("DOAR MANAGERUL POATE STERGE RAPOARTE!\n");
+        exit(-1);
+    }
+    char path[128];
+    snprintf(path, sizeof(path), "%s/reports.dat", district);
+
+    int fd = 0;
+    if((fd = open(path, O_RDWR)) < 0)
+    {
+        perror("EROARE OPEN!\n");
+        exit(-1);
+    }
+
+    struct stat statfolder;
+    if(stat(path, &statfolder) < 0)
+    {
+        perror("EROARE STAT!\n");
+        close(fd);
+        exit(-1);
+    }
+    int totalRep = statfolder.st_size / sizeof(Report);
+    if(totalRep < reportID)
+    {
+        close(fd);
+        perror("NU EXISTA IDUL REPORTULUI!\n");
+        exit(-1);
+    }
+    Report rep;
+    for(int i = reportID;i < totalRep;i++)
+    {
+        lseek(fd, i * sizeof(Report), SEEK_SET);
+        read(fd, &rep, sizeof(Report));
+
+        rep.reportID = i;
+
+        lseek(fd, (i - 1) * sizeof(Report), SEEK_SET);
+        write(fd, &rep, sizeof(Report));
+    }
+
+    ftruncate(fd, (totalRep - 1) * sizeof(Report));
     close(fd);
 }
 int main(int argc,char **argv)
@@ -169,4 +259,8 @@ int main(int argc,char **argv)
         add(district,role,user);
     if(strcmp(command,"list") == 0)
         list(district);
+    if(strcmp(command,"view") == 0)
+        view(district,reportID);
+    if(strcmp(command,"remove_report") == 0)
+        remove_report(district,role,reportID);
 }
