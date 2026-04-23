@@ -21,7 +21,7 @@ void printRep(Report rep,int foldergol)
 void add(char *district,char *role,char *user)
 {
     struct stat statdir;
-    if (stat(district, &statdir) < 0) 
+    if (stat(district, &statdir) < 0)
     {
         if (strcmp(role, "manager") == 0)
         {
@@ -38,7 +38,7 @@ void add(char *district,char *role,char *user)
             exit(-1);
         }
     }
-    
+
     char path[128];
     snprintf(path, sizeof(path), "%s/reports.dat", district);
 
@@ -54,6 +54,11 @@ void add(char *district,char *role,char *user)
     printf("Y: "); scanf("%f",&rep.coord.y);getchar();
     printf("Category (road/lighting/flooding/other): "); scanf("%s",rep.issueCateg);
     printf("Severity level (1/2/3): "); scanf("%d",&rep.severityLevel);getchar();
+    if(!(rep.severityLevel == 1 || rep.severityLevel == 2 || rep.severityLevel == 3))
+    {
+        perror("SECURITY LEVEL NU ESTE IN INTERVALUL [1,3]!\n");
+        exit(-1);
+    }
     printf("Description: "); scanf("%255[^\n]",rep.descriptionText);
     strcpy(rep.name,user);
     struct stat statfolder;
@@ -141,10 +146,10 @@ void remove_report(char *district,char *role,int reportID)
         exit(-1);
     }
     char path[128];
-    snprintf(path, sizeof(path), "%s/district.cfg", district);
+    snprintf(path, sizeof(path), "%s/reports.dat", district);
 
     int fd = 0;
-    if((fd = open(path, O_RDWR)) < 0)
+    if((fd = open(path, O_WRONLY,PERM_REPORTS_DAT)) < 0)
     {
         perror("EROARE OPEN!\n");
         exit(-1);
@@ -157,7 +162,7 @@ void remove_report(char *district,char *role,int reportID)
         close(fd);
         exit(-1);
     }
-    int totalRep = statfolder.st_size / sizeof(Report);
+    int totalRep = (int)(statfolder.st_size / sizeof(Report));
     if(totalRep < reportID)
     {
         close(fd);
@@ -303,5 +308,5 @@ int main(int argc,char **argv)
     if(strcmp(command,"remove_report") == 0)
         remove_report(district,role,reportID);
     if(strcmp(command,"update_threshold") == 0)
-        remove_report(district,role,value);
+        update_threshold(district,role,value);
 }
