@@ -141,7 +141,7 @@ void remove_report(char *district,char *role,int reportID)
         exit(-1);
     }
     char path[128];
-    snprintf(path, sizeof(path), "%s/reports.dat", district);
+    snprintf(path, sizeof(path), "%s/district.cfg", district);
 
     int fd = 0;
     if((fd = open(path, O_RDWR)) < 0)
@@ -177,6 +177,45 @@ void remove_report(char *district,char *role,int reportID)
     }
 
     ftruncate(fd, (totalRep - 1) * sizeof(Report));
+    close(fd);
+}
+void update_threshold(char *district, char *role, int value)
+{
+    if(strcmp(role, "manager") != 0)
+    {
+        perror("DOAR MANAGERUL POATE STERGE RAPOARTE!\n");
+        exit(-1);
+    }
+    char path[128];
+    snprintf(path, sizeof(path), "%s/reports.dat", district);
+
+    struct stat st;
+    if(stat(path,&st) < 0)
+    {
+        perror("EROARE STAT!\n");
+        exit(-1);
+    }
+
+    if((st.st_mode & 0777) != PERM_DISTRICT_CFG)//extrag din st_mode doar bitii de care am nev
+    {
+        perror("PERMISIUNE INVALIDA!\n");
+        exit(-1);
+    }
+    int fd = 0;
+    if((fd = open(path, O_WRONLY | O_CREAT | O_TRUNC,PERM_DISTRICT_CFG)) < 0)
+    {
+        perror("EROARE OPEN!\n");
+        exit(-1);
+    }
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d\n", value);
+    if(write(fd, buf, strlen(buf)) < 0)
+    {
+        perror("EROARE WRITE!\n");
+        close(fd);
+        exit(-1);
+    }
+
     close(fd);
 }
 int main(int argc,char **argv)
@@ -263,4 +302,6 @@ int main(int argc,char **argv)
         view(district,reportID);
     if(strcmp(command,"remove_report") == 0)
         remove_report(district,role,reportID);
+    if(strcmp(command,"update_threshold") == 0)
+        remove_report(district,role,value);
 }
