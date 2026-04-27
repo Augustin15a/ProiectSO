@@ -23,4 +23,13 @@ typedef struct {
     char descriptionText[256];
 } Report;
 
+void printRep(Report rep,int foldergol);
+void add(char *district,char *role,char *user);
+void permisii(mode_t mode, char out[10]);
+void list(char *district, char *role, char *user);
+void view(char *district, int reportID, char *role, char *user);
+void remove_report(char *district, char *role, char *user, int reportID);
+void update_threshold(char *district, char *role, char *user, int value);
+void log_action(char *district, char *role, char *user, char *action);
+void check_permission(char *path, char *role);
 #endif
