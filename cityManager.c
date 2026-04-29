@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include "filter.h"
-#include "remove_district"
+#include "remove_district.h"
 
 void printRep(Report rep,int foldergol)
 {
@@ -482,7 +482,7 @@ int main(int argc,char **argv)
     }
     if(strcmp(command,"remove_district") == 0)
     {
-        void remove_district(district);
+        remove_district(district);
     }
     return 0;
 }
