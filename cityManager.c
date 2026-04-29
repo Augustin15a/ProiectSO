@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include "filter.h"
+#include "remove_district"
 
 void printRep(Report rep,int foldergol)
 {
@@ -422,6 +423,15 @@ int main(int argc,char **argv)
                 i += 1;
             }
         }
+        if(strcmp(argv[i],"--remove_district") == 0)
+        {
+            strcpy(command,"remove_district");
+            if(i+1 < argc)
+            {
+                strcpy(district,argv[i+1]);
+                i += 1;
+            }
+        }
     }
 
     if(strlen(role) == 0)
@@ -469,6 +479,10 @@ int main(int argc,char **argv)
             num_conds++;
         }
         filter(district, &argv[conditie], num_conds);
+    }
+    if(strcmp(command,"remove_district") == 0)
+    {
+        void remove_district(district);
     }
     return 0;
 }
