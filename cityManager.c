@@ -9,6 +9,8 @@
 #include <string.h>
 #include "filter.h"
 #include "remove_district.h"
+#include <signal.h>
+#include <errno.h>
 
 void printRep(Report rep,int foldergol)
 {
@@ -77,6 +79,30 @@ void check_permission(char *path, char *role)
             exit(-1);
         }
     }
+}
+int notify_monitor()
+{
+    int fd = 0;
+    if((fd = open(".monitor_pid", O_RDONLY)) < 0)
+        return 0;
+
+    char buf[32];
+    memset(buf, 0, sizeof(buf));
+    if(read(fd, buf, sizeof(buf) - 1) <= 0)
+    {
+        close(fd);
+        return 0;
+    }
+    close(fd);
+
+    pid_t monitor_pid = (pid_t)atoi(buf);
+    if(monitor_pid <= 0)
+        return 0;
+
+    if(kill(monitor_pid, SIGUSR1) < 0)
+        return 0;
+
+    return 1;
 }
 void add(char *district,char *role,char *user)
 {
@@ -150,7 +176,10 @@ void add(char *district,char *role,char *user)
         unlink(linkname);
     symlink(target, linkname);
 
-    log_action(district, role, user, "add");
+    if(notify_monitor())
+        log_action(district, role, user, "add | monitor notificat via SIGUSR1");
+    else
+        log_action(district, role, user, "add | monitorul NU a putut fi notificat");
 }
 void permisii(mode_t mode, char out[10])
 {
