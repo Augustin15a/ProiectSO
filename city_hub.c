@@ -11,13 +11,20 @@
 void start_monitor()
 {
     int pipefd[2];
+    int n = 0;
+    pid_t fid = 0;
+    pid_t monitor = 0;
+    char buf[512];
+    char *line = NULL;
+    char *newline = NULL;
+
     if(pipe(pipefd) < 0)
     {
         perror("EROARE PIPE!\n");
         exit(-1);
     }
 
-    pid_t fid = fork();
+    fid = fork();
     if(fid < 0)
     {
         perror("EROARE FORK fid!\n");
@@ -26,9 +33,13 @@ void start_monitor()
 
     if(fid == 0)
     {
-        close(pipefd[0]);
+        if(close(pipefd[0]) < 0)
+        {
+            perror("EROARE CLOSE pipefd[0]!\n");
+            exit(-1);
+        }
 
-        pid_t monitor = fork();
+        monitor = fork();
         if(monitor < 0)
         {
             perror("EROARE FORK monitor!\n");
@@ -42,62 +53,166 @@ void start_monitor()
                 perror("EROARE DUP2!\n");
                 exit(-1);
             }
-            close(pipefd[1]);
-
-            int fd = open(".monitor_pid", O_RDONLY);
-            if(fd >= 0)
+            if(close(pipefd[1]) < 0)
             {
-                char buf[32];
-                memset(buf, 0, sizeof(buf));
-                read(fd, buf, sizeof(buf) - 1);
-                close(fd);
-                pid_t existing = (pid_t)atoi(buf);
-                if(existing > 0 && kill(existing, 0) == 0)
-                {
-                    printf("EROARE: Monitor deja pornit (PID=%d).\n", (int)existing);
-                    fflush(stdout);
-                    exit(0);
-                }
+                perror("EROARE CLOSE pipefd[1]!\n");
+                exit(-1);
             }
+            if(execlp("./monitor_report", "./monitor_report", NULL) < 0)
+            {
+                perror("EROARE EXECLP monitor_report!\n");
+                exit(-1);
+            }
+        }
 
-            execlp("./monitor_report", "./monitor_report", NULL);
-            perror("EROARE EXECLP monitor_report!\n");
+        if(close(pipefd[1]) < 0)
+        {
+            perror("EROARE CLOSE pipefd[1]!\n");
             exit(-1);
         }
 
-        close(pipefd[1]);
-
-        char buf[512];
-        int n = 0;
         while((n = read(pipefd[0], buf, sizeof(buf) - 1)) > 0)
         {
             buf[n] = '\0';
-            printf("[HUB] %s", buf);
-            fflush(stdout);
-
-            if(strstr(buf, "Oprire") != NULL || strstr(buf, "EROARE") != NULL)
+            line = buf;
+            while((newline = strchr(line, '\n')) != NULL)
             {
-                printf("[HUB] Monitorul s-a oprit.\n");
-                fflush(stdout);
-                break;
+                *newline = '\0';
+
+                if(strncmp(line, "ERROR:", 6) == 0)
+                {
+                    printf("[HUB] EROARE MONITOR: %s\n", line + 6);
+                    fflush(stdout);
+                    waitpid(monitor, NULL, 0);
+                    close(pipefd[0]);
+                    exit(0);
+                }
+                if(strncmp(line, "INFO:", 5) == 0)
+                {
+                    printf("[HUB] %s\n", line + 5);
+                    fflush(stdout);
+
+                    if(strstr(line, "Oprire") != NULL)
+                    {
+                        printf("[HUB] Monitorul s-a oprit.\n");
+                        fflush(stdout);
+                        waitpid(monitor, NULL, 0);
+                        close(pipefd[0]);
+                        exit(0);
+                    }
+                }
+
+                line = newline + 1;
             }
         }
 
-        close(pipefd[0]);
+        if(close(pipefd[0]) < 0)
+        {
+            perror("EROARE CLOSE pipefd[0]!\n");
+            exit(-1);
+        }
         waitpid(monitor, NULL, 0);
         exit(0);
     }
 
-    close(pipefd[0]);
-    close(pipefd[1]);
+    if(close(pipefd[0]) < 0)
+    {
+        perror("EROARE CLOSE pipefd[0]!\n");
+        exit(-1);
+    }
+    if(close(pipefd[1]) < 0)
+    {
+        perror("EROARE CLOSE pipefd[1]!\n");
+        exit(-1);
+    }
     printf("[HUB] hub_mon pornit in background (PID=%d).\n", (int)fid);
+    fflush(stdout);
+}
+
+void calculate_scores(char **districts, int count)
+{
+    int pipes[64][2];
+    int n = 0;
+    pid_t pids[64];
+    char buf[512];
+
+    for(int i = 0; i < count; i++)
+    {
+        if(pipe(pipes[i]) < 0)
+        {
+            perror("EROARE PIPE scorer!\n");
+            exit(-1);
+        }
+
+        pids[i] = fork();
+        if(pids[i] < 0)
+        {
+            perror("EROARE FORK scorer!\n");
+            exit(-1);
+        }
+
+        if(pids[i] == 0)
+        {
+            if(dup2(pipes[i][1], STDOUT_FILENO) < 0)
+            {
+                perror("EROARE DUP2 scorer!\n");
+                exit(-1);
+            }
+            if(close(pipes[i][0]) < 0)
+            {
+                perror("EROARE CLOSE pipes[i][0]!\n");
+                exit(-1);
+            }
+            if(close(pipes[i][1]) < 0)
+            {
+                perror("EROARE CLOSE pipes[i][1]!\n");
+                exit(-1);
+            }
+            if(execlp("./scorer", "./scorer", districts[i], NULL) < 0)
+            {
+                perror("EROARE EXECLP scorer!\n");
+                exit(-1);
+            }
+        }
+
+        if(close(pipes[i][1]) < 0)
+        {
+            perror("EROARE CLOSE pipes[i][1]!\n");
+            exit(-1);
+        }
+    }
+
+    printf("\n=== Raport workload ===\n");
+    fflush(stdout);
+
+    for(int i = 0; i < count; i++)
+    {
+        while((n = read(pipes[i][0], buf, sizeof(buf) - 1)) > 0)
+        {
+            buf[n] = '\0';
+            printf("%s", buf);
+            fflush(stdout);
+        }
+        if(close(pipes[i][0]) < 0)
+        {
+            perror("EROARE CLOSE pipes[i][0]!\n");
+            exit(-1);
+        }
+        waitpid(pids[i], NULL, 0);
+    }
+
+    printf("======================\n");
+    fflush(stdout);
 }
 
 int main()
 {
-    char input[256];
+    char input[512];
+    char *token = NULL;
+    char *districts[64];
+    int count = 0;
 
-    printf("Comenzi: start_monitor | exit\n");
+    printf("Comenzi: start_monitor | calculate_scores <d1> [d2 ...] | exit\n");
 
     while(1)
     {
@@ -111,8 +226,23 @@ int main()
 
         if(strcmp(input, "exit") == 0)
             break;
-        else if(strcmp(input, "start_monitor") == 0)
+        if(strcmp(input, "start_monitor") == 0)
             start_monitor();
+        else if(strncmp(input, "calculate_scores", 16) == 0)
+        {
+            count = 0;
+            token = strtok(input + 16, " ");
+            while(token != NULL && count < 64)
+            {
+                districts[count++] = token;
+                token = strtok(NULL, " ");
+            }
+
+            if(count == 0)
+                printf("[HUB] Folosire: calculate_scores <district1> [district2 ...]\n");
+            else
+                calculate_scores(districts, count);
+        }
         else
             printf("Comanda necunoscuta: %s\n", input);
     }
