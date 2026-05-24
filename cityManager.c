@@ -266,7 +266,7 @@ void view(char *district, int reportID,char *role, char *user)
         close(fd);
         exit(-1);
     }
-    if(st.st_size / sizeof(Report) < reportID)
+    if((int)(st.st_size / sizeof(Report)) < reportID)
     {
         close(fd);
         perror("NU EXISTA IDUL REPORTULUI!\n");

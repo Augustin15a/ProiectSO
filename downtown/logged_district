@@ -1,2 +1,3 @@
 [Sun May 24 17:15:47 2026] role=manager user=alice action=add | monitorul NU a putut fi notificat
 [Sun May 24 17:16:00 2026] role=inspector user=bob action=list
+[Sun May 24 17:32:29 2026] role=inspector user=bob action=list
