@@ -32,3 +32,6 @@ Ce a generat:
     -pentru campuri string cu operatori invalizi afiseaza avertisment si returneaza 0
 Ce am invatat
     -trebuie sa fiu atent cand imi generaza ca mai apar probleme
+
+Pentru phase 2 si 3 am folosit ai pentru a imi corecta codul, a ma ajuta cu scrierea unor
+    secvente de cod si adaugarea a printfurilor pentru a arata mult mai bine proiectul
