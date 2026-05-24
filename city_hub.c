@@ -33,11 +33,7 @@ void start_monitor()
 
     if(fid == 0)
     {
-        if(close(pipefd[0]) < 0)
-        {
-            perror("EROARE CLOSE pipefd[0]!\n");
-            exit(-1);
-        }
+        close(pipefd[0]);
 
         monitor = fork();
         if(monitor < 0)
@@ -53,11 +49,7 @@ void start_monitor()
                 perror("EROARE DUP2!\n");
                 exit(-1);
             }
-            if(close(pipefd[1]) < 0)
-            {
-                perror("EROARE CLOSE pipefd[1]!\n");
-                exit(-1);
-            }
+            close(pipefd[1]);
             if(execlp("./monitor_report", "./monitor_report", NULL) < 0)
             {
                 perror("EROARE EXECLP monitor_report!\n");
@@ -65,11 +57,7 @@ void start_monitor()
             }
         }
 
-        if(close(pipefd[1]) < 0)
-        {
-            perror("EROARE CLOSE pipefd[1]!\n");
-            exit(-1);
-        }
+        close(pipefd[1]);
 
         while((n = read(pipefd[0], buf, sizeof(buf) - 1)) > 0)
         {
@@ -106,25 +94,13 @@ void start_monitor()
             }
         }
 
-        if(close(pipefd[0]) < 0)
-        {
-            perror("EROARE CLOSE pipefd[0]!\n");
-            exit(-1);
-        }
+        close(pipefd[0]);
         waitpid(monitor, NULL, 0);
         exit(0);
     }
 
-    if(close(pipefd[0]) < 0)
-    {
-        perror("EROARE CLOSE pipefd[0]!\n");
-        exit(-1);
-    }
-    if(close(pipefd[1]) < 0)
-    {
-        perror("EROARE CLOSE pipefd[1]!\n");
-        exit(-1);
-    }
+    close(pipefd[0]);
+    close(pipefd[1]);
     printf("[HUB] hub_mon pornit in background (PID=%d).\n", (int)fid);
     fflush(stdout);
 }
@@ -158,28 +134,16 @@ void calculate_scores(char **districts, int count)
                 perror("EROARE DUP2 scorer!\n");
                 exit(-1);
             }
-            if(close(pipes[i][0]) < 0)
-            {
-                perror("EROARE CLOSE pipes[i][0]!\n");
-                exit(-1);
-            }
-            if(close(pipes[i][1]) < 0)
-            {
-                perror("EROARE CLOSE pipes[i][1]!\n");
-                exit(-1);
-            }
-            if(execlp("./scorer", "./scorer", districts[i], NULL) < 0)
+            close(pipes[i][0]);
+            close(pipes[i][1]);
+            if(execlp("./scor", "./scor", districts[i], NULL) < 0)
             {
                 perror("EROARE EXECLP scorer!\n");
                 exit(-1);
             }
         }
 
-        if(close(pipes[i][1]) < 0)
-        {
-            perror("EROARE CLOSE pipes[i][1]!\n");
-            exit(-1);
-        }
+        close(pipes[i][1]);
     }
 
     printf("\n=== Raport workload ===\n");
@@ -193,11 +157,7 @@ void calculate_scores(char **districts, int count)
             printf("%s", buf);
             fflush(stdout);
         }
-        if(close(pipes[i][0]) < 0)
-        {
-            perror("EROARE CLOSE pipes[i][0]!\n");
-            exit(-1);
-        }
+        close(pipes[i][0]);
         waitpid(pids[i], NULL, 0);
     }
 

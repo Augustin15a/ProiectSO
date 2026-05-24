@@ -54,11 +54,7 @@ int main(int argc, char **argv)
         }
     }
 
-    if(close(fd) < 0)
-    {
-        perror("EROARE CLOSE reports.dat!\n");
-        exit(-1);
-    }
+    close(fd);
 
     printf("District: %s\n", argv[1]);
     if(count == 0)

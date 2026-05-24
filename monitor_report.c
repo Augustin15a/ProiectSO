@@ -49,15 +49,10 @@ void write_pid_file()
     if(write(fd, buf, len) != len)
     {
         perror("EROARE WRITE .monitor_pid!\n");
-        if(close(fd) < 0)
-            perror("EROARE CLOSE .monitor_pid!\n");
+        close(fd);
         exit(-1);
     }
-    if(close(fd) < 0)
-    {
-        perror("EROARE CLOSE .monitor_pid!\n");
-        exit(-1);
-    }
+    close(fd);
 }
 
 void remove_pid_file()
@@ -80,15 +75,10 @@ int main()
         if(read(fd, buf, sizeof(buf) - 1) < 0)
         {
             perror("EROARE READ .monitor_pid!\n");
-            if(close(fd) < 0)
-                perror("EROARE CLOSE .monitor_pid!\n");
+            close(fd);
             exit(-1);
         }
-        if(close(fd) < 0)
-        {
-            perror("EROARE CLOSE .monitor_pid!\n");
-            exit(-1);
-        }
+        close(fd);
         pid_t existing = (pid_t)atoi(buf);
         if(existing > 0 && kill(existing, 0) == 0)
         {
